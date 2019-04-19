@@ -1,103 +1,61 @@
-export type Dictionary<T> = { [key: string]: T }
-export type Config = {
-  form?: string
-  rules?: { [key: string]: string }
-  validators?: Dictionary<Validator>
-}
+import { Config, Rule, DatavalInstance } from './types'
+import { validators } from './validators'
+import { rulesToStringDictionary, stringDictionaryToRules } from './utils'
 
-export type Validation = {
-  valid: boolean
-  errors: { key: string; message: string[] }[]
-}
-
-export type Validator = (attrs: {
-  key?: string
-  value?: string | boolean | number
-  form?: string
-  args?: string[]
-}) => boolean
-
-export type Rule = { name: string; args: string[] }[]
-
-export interface ValidataInstance {
-  form: string
-  rules: Dictionary<Rule>
-  validators: Dictionary<Validator>
-  add: (name: string, validator: Validator) => ValidataInstance
-  validate: (values: { [key: string]: string | boolean | number }) => Validation
-}
-
-const validators: Dictionary<Validator> = {
-  required: ({ value }) =>
-    typeof value !== 'undefined' &&
-    ((typeof value === 'string' || typeof value === 'number') && (value + '').length > 0),
-  length: ({ value, args: [from, to] }) =>
-    (value + '').length >= parseInt(from) &&
-    (value + '').length <= (parseInt(to) || (value + '').length),
-  isString: ({ value }) => typeof value === 'string',
-  isBoolean: ({ value }) => typeof value === 'boolean',
-  isNumber: ({ value }) => typeof value === 'number',
-  isDate: ({ value }) => Date.parse(value as string) !== NaN,
-  isTrue: ({ value }) => validators.isBoolean({ value }) && (value as boolean),
-  isFalse: ({ value }) => validators.isBoolean({ value }) && !value,
-  isEmpty: ({ value }) => validators.length({ value, args: ['0', '0'] }),
-  max: ({ value, args: [max] }) => validators.isNumber({ value }) && value <= max,
-  min: ({ value, args: [min] }) => validators.isNumber({ value }) && value >= min,
-  between: ({ value, args: [min, max] }) =>
-    validators.isNumber({ value }) && value >= min && value <= max,
-  isAfter: ({ value, args: [date] }) =>
-    validators.isDate({ value }) && Date.parse(value as string) > parseInt(date),
-  isBefore: ({ value, args: [date] }) =>
-    validators.isDate({ value }) && Date.parse(value as string) < parseInt(date)
-}
-
-const Validata = (config?: Config): ValidataInstance => {
-  const validata: ValidataInstance = {
+const Dataval = (config?: Config): DatavalInstance => {
+  const dataval: DatavalInstance = {
     form: config.form,
-    rules: Object.keys(config.rules).reduce((tmp, key) => {
-      tmp[key] = config.rules[key]
-        .split('|')
-        .map(rule => ({ name: rule.split(':')[0], args: rule.split(':').slice(1) }))
-      return tmp
-    }, {}),
+    rules: stringDictionaryToRules(config.rules),
     validators: config.validators,
     add: (name, fn) =>
-      Validata({
+      Dataval({
         form: config.form,
-        rules: Object.keys(validata.rules).reduce((tmp, k) => {
-          tmp[k] = validata.rules[k].map(rules => `${rules.name}:${rules.args.join(':')}`).join('|')
-          return tmp
-        }, {}),
-        validators: { ...validata.validators, [name]: fn }
+        rules: rulesToStringDictionary(dataval.rules),
+        validators: { ...dataval.validators, [name]: fn }
       }),
-    validate: values => {
-      return Object.keys(values).reduce(
-        (result: Validation, key: string) => {
-          const fieldResults = (validata.rules[key] || []).filter(validation => {
-            const isValid = (validators[validation.name] || validata.validators[validation.name])({
-              key,
-              value: values[key],
-              form: validata.form,
-              args: validation.args
-            })
-
-            return !isValid
-          })
-          if (fieldResults.length > 0) {
-            result.valid = false
-            result.errors.push({ key, message: fieldResults.map(v => v.name) })
+    validate: async values => {
+      const results = await Promise.all(
+        Object.keys(values).map(async key => {
+          const validations: Rule[] = dataval.rules[key] || []
+          if (validations.length === 0) {
+            return { key, message: [] }
           }
-          return result
-        },
-        {
-          valid: true,
-          errors: []
-        }
+
+          const fieldResults = await Promise.all(
+            validations.map(async validation => {
+              const validator = validators[validation.name] || dataval.validators[validation.name]
+              if (!validator) {
+                throw new Error(
+                  `Validator ${validation.name} is not registered but a rule requires it.`
+                )
+              }
+
+              const valid = await validator({
+                key,
+                value: values[key],
+                form: dataval.form,
+                args: validation.args
+              })
+
+              return { name: validation.name, valid }
+            })
+          )
+
+          return {
+            key,
+            message: fieldResults.filter(v => !v.valid).map(v => v.name)
+          }
+        })
       )
+
+      return {
+        valid: !results.some(result => result.message.length > 0),
+        errors: results.filter(result => result.message.length > 0)
+      }
     }
   }
 
-  return validata
+  return dataval
 }
 
-export default Validata
+export default Dataval

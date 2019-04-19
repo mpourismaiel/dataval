@@ -1,14 +1,14 @@
-import Validata from '../src/validata'
+import Dataval from '../src/dataval'
 
-describe('Validata', () => {
+describe('Dataval', () => {
   const key = 'nationalCode'
   const value = '1234567890'
   const form = 'auth'
 
   const db = { [key]: [value] }
 
-  it('works with built-in rules', () => {
-    const validata = Validata({
+  it('works with built-in rules', async () => {
+    const dataval = Dataval({
       form,
       rules: {
         [key]: 'required'
@@ -16,14 +16,14 @@ describe('Validata', () => {
     })
 
     expect(
-      validata.validate({
+      await dataval.validate({
         [key]: value
       })
     ).toEqual({ valid: true, errors: [] })
   })
 
-  it('works with custom rules', () => {
-    const validata = Validata({
+  it('works with custom rules', async () => {
+    const dataval = Dataval({
       form,
       rules: {
         [key]: 'unique'
@@ -31,14 +31,14 @@ describe('Validata', () => {
     }).add('unique', ({ key: k, value: v }) => db[k].indexOf(v) === -1)
 
     expect(
-      validata.validate({
+      await dataval.validate({
         [key]: value + Math.random()
       })
     ).toEqual({ valid: true, errors: [] })
   })
 
-  it('works with combination of custom and built-in rules', () => {
-    const validata = Validata({
+  it('works with combination of custom and built-in rules', async () => {
+    const dataval = Dataval({
       form,
       rules: {
         [key]: 'unique|required'
@@ -46,14 +46,52 @@ describe('Validata', () => {
     }).add('unique', ({ key: k, value: v }) => db[k].indexOf(v) === -1)
 
     expect(
-      validata.validate({
+      await dataval.validate({
         [key]: value + Math.random()
       })
     ).toEqual({ valid: true, errors: [] })
   })
 
-  it('returns all errors for invalid values', () => {
-    const validata = Validata({
+  it('works with async validators', async () => {
+    const dataval = Dataval({
+      form,
+      rules: {
+        [key]: 'unique'
+      }
+    }).add(
+      'unique',
+      ({ key: k, value: v }) =>
+        new Promise(resolve => setTimeout(() => resolve(db[k].indexOf(v) === -1), 100))
+    )
+
+    expect(
+      await dataval.validate({
+        [key]: value + Math.random()
+      })
+    ).toEqual({ valid: true, errors: [] })
+  })
+
+  it('fails if async validator fails', async () => {
+    const dataval = Dataval({
+      form,
+      rules: {
+        [key]: 'unique'
+      }
+    }).add(
+      'unique',
+      ({ key: k, value: v }) =>
+        new Promise(resolve => setTimeout(() => resolve(db[k].indexOf(v) === -1), 100))
+    )
+
+    expect(
+      await dataval.validate({
+        [key]: value
+      })
+    ).toEqual({ valid: true, errors: [{ key }] })
+  })
+
+  it('returns all errors for invalid values', async () => {
+    const dataval = Dataval({
       form,
       rules: {
         [key]: 'isNumber|required'
@@ -61,14 +99,14 @@ describe('Validata', () => {
     }).add('isNumber', ({ value: v }) => typeof v === 'number')
 
     expect(
-      validata.validate({
+      await dataval.validate({
         [key]: ''
       })
     ).toEqual({ valid: false, errors: [{ key, message: ['isNumber', 'required'] }] })
   })
 
-  it('accepts args', () => {
-    const validata = Validata({
+  it('accepts args', async () => {
+    const dataval = Dataval({
       form,
       rules: {
         [key]: `length:${value.length}:${value.length}`
@@ -76,7 +114,7 @@ describe('Validata', () => {
     })
 
     expect(
-      validata.validate({
+      await dataval.validate({
         [key]: value
       })
     ).toEqual({ valid: true, errors: [] })

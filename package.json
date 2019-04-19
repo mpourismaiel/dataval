@@ -1,18 +1,18 @@
 {
-  "name": "validata",
-  "version": "0.0.0",
+  "name": "dataval",
+  "version": "0.0.1",
   "description": "",
   "keywords": [],
-  "main": "dist/validata.umd.js",
-  "module": "dist/validata.es5.js",
-  "typings": "dist/types/validata.d.ts",
+  "main": "dist/dataval.umd.js",
+  "module": "dist/dataval.es5.js",
+  "typings": "dist/types/dataval.d.ts",
   "files": [
     "dist"
   ],
   "author": "Mahdi Pourismaiel <mpourismaiel@gmail.com>",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/mpourismaiel/dataval"
   },
   "license": "MIT",
   "engines": {
