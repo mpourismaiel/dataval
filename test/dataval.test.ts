@@ -87,7 +87,7 @@ describe('Dataval', () => {
       await dataval.validate({
         [key]: value
       })
-    ).toEqual({ valid: true, errors: [{ key }] })
+    ).toEqual({ valid: false, errors: [{ key, message: ['unique'] }] })
   })
 
   it('returns all errors for invalid values', async () => {
