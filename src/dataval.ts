@@ -2,15 +2,15 @@ import { Config, Rule, DatavalInstance } from './types'
 import { validators } from './validators'
 import { rulesToStringDictionary, stringDictionaryToRules } from './utils'
 
-const Dataval = (config?: Config): DatavalInstance => {
+const Dataval = (config: Config = {}): DatavalInstance => {
   const dataval: DatavalInstance = {
     form: config.form,
-    rules: stringDictionaryToRules(config.rules),
+    rules: stringDictionaryToRules(config.rules || {}),
     validators: config.validators,
     add: (name, fn) =>
       Dataval({
         form: config.form,
-        rules: rulesToStringDictionary(dataval.rules),
+        rules: rulesToStringDictionary(dataval.rules || {}),
         validators: { ...dataval.validators, [name]: fn }
       }),
     validate: async values => {

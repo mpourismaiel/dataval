@@ -7,6 +7,27 @@ describe('Dataval', () => {
 
   const db = { [key]: [value] }
 
+  it('works with no rules', async () => {
+    const dataval = Dataval()
+
+    expect(
+      await dataval.validate({
+        [key]: value
+      })
+    ).toEqual({ valid: true, errors: [] })
+  })
+
+  it('works with no data', async () => {
+    const dataval = Dataval({
+      form,
+      rules: {
+        [key]: 'required'
+      }
+    })
+
+    expect(await dataval.validate({})).toEqual({ valid: true, errors: [] })
+  })
+
   it('works with built-in rules', async () => {
     const dataval = Dataval({
       form,
@@ -29,6 +50,24 @@ describe('Dataval', () => {
         [key]: 'unique'
       }
     }).add('unique', ({ key: k, value: v }) => db[k].indexOf(v) === -1)
+
+    expect(
+      await dataval.validate({
+        [key]: value + Math.random()
+      })
+    ).toEqual({ valid: true, errors: [] })
+  })
+
+  it('works with custom rules passed as config', async () => {
+    const dataval = Dataval({
+      form,
+      rules: {
+        [key]: 'unique'
+      },
+      validators: {
+        unique: ({ key: k, value: v }) => db[k].indexOf(v) === -1
+      }
+    })
 
     expect(
       await dataval.validate({
