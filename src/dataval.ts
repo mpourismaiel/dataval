@@ -33,6 +33,7 @@ const Dataval = (config: Config = {}): DatavalInstance => {
               const valid = await validator({
                 key,
                 value: values[key],
+                values,
                 form: dataval.form,
                 args: validation.args
               })

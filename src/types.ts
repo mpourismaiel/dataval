@@ -11,9 +11,12 @@ export type Validation = {
   errors: { key: string; message: string[] }[]
 }
 
+export type Values = { [key: string]: string | boolean | number }
+
 export type Validator = (attrs: {
   key?: string
   value?: string | boolean | number
+  values?: Values
   form?: string
   args?: string[]
 }) => boolean | Promise<boolean>
@@ -25,5 +28,5 @@ export interface DatavalInstance {
   rules: Dictionary<Rule[]>
   validators: Dictionary<Validator>
   add: (name: string, validator: Validator) => DatavalInstance
-  validate: (values: { [key: string]: string | boolean | number }) => Promise<Validation>
+  validate: (values: Values) => Promise<Validation>
 }
