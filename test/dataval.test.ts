@@ -76,6 +76,49 @@ describe('Dataval', () => {
     ).toEqual({ valid: true, errors: [] })
   })
 
+  it('should work with values in validator', async () => {
+    const dataval = Dataval({
+      form,
+      rules: {
+        email: 'requiredIfNot:phone',
+        phone: 'requiredIfNot:email'
+      },
+      validators: {
+        requiredIfNot: ({ args: [dependency], value, values }) => {
+          if (!values[dependency] && value) {
+            return true
+          }
+          return false
+        }
+      }
+    })
+
+    expect(
+      await dataval.validate({
+        email: 'asdfasdfasdf@adsfadsf.asdf'
+      })
+    ).toEqual({ valid: true, errors: [] })
+
+    expect(
+      await dataval.validate({
+        phone: '121234567'
+      })
+    ).toEqual({ valid: true, errors: [] })
+
+    expect(
+      await dataval.validate({
+        email: 'asdfasdfasdf@adsfadsf.asdf',
+        phone: '121234567'
+      })
+    ).toEqual({
+      errors: [
+        { key: 'email', message: ['requiredIfNot'] },
+        { key: 'phone', message: ['requiredIfNot'] }
+      ],
+      valid: false
+    })
+  })
+
   it('works with combination of custom and built-in rules', async () => {
     const dataval = Dataval({
       form,
