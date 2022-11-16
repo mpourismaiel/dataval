@@ -1,6 +1,6 @@
 # Dataval
 
-Create rules, validate all the forms.
+Crieate rules, validate all the forms.
 
 Dataval is a form validator following ideas from Laravel. The idea is that you
 can create a validator and validate every form data by just calling it. This
